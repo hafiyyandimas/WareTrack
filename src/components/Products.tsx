@@ -1,28 +1,31 @@
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { Icon } from '../components/Icon';
-import { Badge, PageHeader, BarChart } from '../components/ui';
-import { PRODUCTS, fmtIDR, fmtNum, statusForStock, type Product } from '../lib/data';
+import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { Icon } from '../components/Icon'
+import { Badge, PageHeader } from '../components/ui'
+import { fmtIDR, fmtNum, statusForStock } from '../lib/data'
+import { getBarang, getBarangBySku, getTransaksi } from '../lib/queries'
 
 // ─── Products List ───────────────────────────────────────────────────────────
 
 export function Products() {
-  const navigate = useNavigate();
-  const [view, setView] = useState<'table' | 'grid'>('table');
-  const [filterCat, setFilterCat] = useState('Semua');
+  const navigate = useNavigate()
+  const [view, setView] = useState<'table' | 'grid'>('table')
+  const [filterCat, setFilterCat] = useState('Semua')
 
-  const categories = ['Semua', ...Array.from(new Set(PRODUCTS.map(p => p.kategori)))];
-  const items = filterCat === 'Semua' ? PRODUCTS : PRODUCTS.filter(p => p.kategori === filterCat);
+  const { data: barang = [], isLoading } = useQuery({
+    queryKey: ['barang'],
+    queryFn: () => getBarang(),
+  })
 
-  function openProduct(p: Product) {
-    navigate({ to: '/products/$sku', params: { sku: p.sku } });
-  }
+  const categories = ['Semua', ...Array.from(new Set(barang.map(p => p.kategori ?? 'Lainnya')))]
+  const items = filterCat === 'Semua' ? barang : barang.filter(p => p.kategori === filterCat)
 
   return (
     <>
       <PageHeader
         title="Produk"
-        subtitle="12.418 SKU aktif · 4 gudang"
+        subtitle={`${fmtNum(barang.length)} SKU aktif`}
         actions={
           <>
             <button className="btn btn-secondary btn-sm"><Icon name="upload" className="ico ico-sm" /> Impor CSV</button>
@@ -36,15 +39,13 @@ export function Products() {
         <div className="table-toolbar">
           <div className="table-search">
             <Icon name="search" className="ico ico-sm" />
-            <input placeholder="Cari nama, SKU, supplier…" />
+            <input placeholder="Cari nama, SKU…" />
           </div>
           <button className={"chip-filter" + (filterCat !== "Semua" ? " applied" : "")}>
             Kategori <span className="val">{filterCat}</span>
             <Icon name="chevronDown" className="ico ico-sm" />
           </button>
-          <button className="chip-filter">Gudang <span className="val">WH-JKT-01</span></button>
           <button className="chip-filter">Status</button>
-          <button className="chip-filter">Supplier</button>
           <button className="chip-filter" style={{ marginLeft: "auto" }}>
             <Icon name="filter" className="ico ico-sm" /> Filter lanjutan
           </button>
@@ -66,7 +67,9 @@ export function Products() {
           ))}
         </div>
 
-        {view === "table" ? (
+        {isLoading ? (
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)" }}>Memuat data…</div>
+        ) : view === "table" ? (
           <table>
             <thead>
               <tr>
@@ -74,96 +77,104 @@ export function Products() {
                 <th>SKU</th>
                 <th>Produk</th>
                 <th>Kategori</th>
-                <th>Lokasi</th>
                 <th className="num">Stok</th>
                 <th className="num">Min</th>
                 <th className="num">Harga</th>
                 <th>Status</th>
-                <th>Update</th>
                 <th style={{ width: 40 }}></th>
               </tr>
             </thead>
             <tbody>
               {items.map((p) => {
-                const s = statusForStock(p.stok, p.min);
+                const s = statusForStock(p.kuantitas_stok, p.batas_minimum)
                 return (
-                  <tr key={p.sku} onClick={() => openProduct(p)} style={{ cursor: "pointer" }}>
+                  <tr key={p.sku} onClick={() => navigate({ to: '/products/$sku', params: { sku: p.sku } })} style={{ cursor: "pointer" }}>
                     <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
                     <td className="mono">{p.sku}</td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 32, height: 32, background: "var(--surface-2)", borderRadius: "var(--r-sm)", border: "1px solid var(--border)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, var(--border) 4px, var(--border) 5px)" }} />
                         <div>
-                          <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nama}</div>
-                          <div className="xsmall muted">{p.variant}</div>
+                          <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nama_barang}</div>
+                          <div className="xsmall muted">{p.satuan}</div>
                         </div>
                       </div>
                     </td>
-                    <td><span className="muted">{p.kategori}</span></td>
-                    <td className="mono">{p.lokasi}</td>
-                    <td className="num" style={{ fontWeight: 600 }}>{fmtNum(p.stok)}</td>
-                    <td className="num muted">{p.min}</td>
-                    <td className="num">{fmtIDR(p.harga)}</td>
+                    <td><span className="muted">{p.kategori ?? '—'}</span></td>
+                    <td className="num" style={{ fontWeight: 600 }}>{fmtNum(p.kuantitas_stok)}</td>
+                    <td className="num muted">{p.batas_minimum}</td>
+                    <td className="num">{fmtIDR(Number(p.harga))}</td>
                     <td><Badge kind={s.kind}>{s.label}</Badge></td>
-                    <td><span className="xsmall muted">{p.updated} lalu</span></td>
                     <td onClick={e => e.stopPropagation()}><button className="icon-btn"><Icon name="more" className="ico ico-sm" /></button></td>
                   </tr>
-                );
+                )
               })}
             </tbody>
           </table>
         ) : (
           <div style={{ padding: 14, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {items.map((p) => {
-              const s = statusForStock(p.stok, p.min);
+              const s = statusForStock(p.kuantitas_stok, p.batas_minimum)
               return (
-                <div key={p.sku} className="card" style={{ cursor: "pointer" }} onClick={() => openProduct(p)}>
+                <div key={p.sku} className="card" style={{ cursor: "pointer" }} onClick={() => navigate({ to: '/products/$sku', params: { sku: p.sku } })}>
                   <div style={{ height: 120, background: "var(--surface-2)", borderBottom: "1px solid var(--border)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 6px, var(--border) 6px, var(--border) 7px)", borderTopLeftRadius: "var(--r-lg)", borderTopRightRadius: "var(--r-lg)", position: "relative" }}>
                     <div style={{ position: "absolute", top: 8, right: 8 }}><Badge kind={s.kind}>{s.label}</Badge></div>
                   </div>
                   <div style={{ padding: 12 }}>
                     <div className="mono xsmall muted" style={{ marginBottom: 4 }}>{p.sku}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginBottom: 2 }}>{p.nama}</div>
-                    <div className="xsmall muted" style={{ marginBottom: 10 }}>{p.variant}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginBottom: 2 }}>{p.nama_barang}</div>
+                    <div className="xsmall muted" style={{ marginBottom: 10 }}>{p.satuan}</div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <span className="mono" style={{ fontWeight: 600 }}>{fmtNum(p.stok)} <span className="muted xsmall">unit</span></span>
-                      <span className="xsmall">{fmtIDR(p.harga)}</span>
+                      <span className="mono" style={{ fontWeight: 600 }}>{fmtNum(p.kuantitas_stok)} <span className="muted xsmall">unit</span></span>
+                      <span className="xsmall">{fmtIDR(Number(p.harga))}</span>
                     </div>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         )}
 
         <div className="table-pagination">
-          <div>Menampilkan <span className="mono">1–{items.length}</span> dari <span className="mono">{fmtNum(12418)}</span> produk</div>
+          <div>Menampilkan <span className="mono">1–{items.length}</span> dari <span className="mono">{fmtNum(barang.length)}</span> produk</div>
           <div className="pager">
             <button disabled><Icon name="chevronLeft" className="ico ico-sm" /></button>
             <button className="active">1</button>
-            <button>2</button>
-            <button>3</button>
-            <button>…</button>
-            <button>249</button>
             <button><Icon name="chevron" className="ico ico-sm" /></button>
           </div>
         </div>
       </div>
     </>
-  );
+  )
 }
 
 // ─── Product Detail ──────────────────────────────────────────────────────────
 
-interface ProductDetailProps {
-  sku: string;
-}
+interface ProductDetailProps { sku: string }
 
 export function ProductDetail({ sku }: ProductDetailProps) {
-  const navigate = useNavigate();
-  const p = PRODUCTS.find(x => x.sku === sku) ?? PRODUCTS[0];
-  const s = statusForStock(p.stok, p.min);
-  const [tab, setTab] = useState('ringkasan');
+  const navigate = useNavigate()
+  const [tab, setTab] = useState('ringkasan')
+
+  const { data: p, isLoading } = useQuery({
+    queryKey: ['barang', sku],
+    queryFn: () => getBarangBySku({ data: sku }),
+  })
+
+  const { data: transaksi = [] } = useQuery({
+    queryKey: ['transaksi'],
+    queryFn: () => getTransaksi(),
+  })
+
+  // Filter transaksi untuk SKU ini
+  const riwayat = transaksi
+    .filter((t: any) => t.barang.sku === sku)
+    .slice(0, 5)
+
+  if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)" }}>Memuat…</div>
+  if (!p) return <div style={{ padding: 40 }}>Produk tidak ditemukan.</div>
+
+  const s = statusForStock(p.kuantitas_stok, p.batas_minimum)
 
   return (
     <>
@@ -174,8 +185,8 @@ export function ProductDetail({ sku }: ProductDetailProps) {
       </div>
 
       <PageHeader
-        title={p.nama}
-        subtitle={<><span className="mono">{p.sku}</span> · {p.variant} · {p.kategori}</>}
+        title={p.nama_barang}
+        subtitle={<><span className="mono">{p.sku}</span> · {p.satuan} · {p.kategori ?? '—'}</>}
         actions={
           <>
             <button className="btn btn-secondary btn-sm"><Icon name="barcode" className="ico ico-sm" /> Cetak label</button>
@@ -186,7 +197,7 @@ export function ProductDetail({ sku }: ProductDetailProps) {
       />
 
       <div className="tabs">
-        {["ringkasan", "pergerakan", "lokasi", "harga", "pemasok"].map(t => (
+        {["ringkasan", "pergerakan", "harga"].map(t => (
           <button key={t} className={"tab" + (tab === t ? " active" : "")} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
@@ -197,60 +208,36 @@ export function ProductDetail({ sku }: ProductDetailProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="card">
             <div className="card-header"><div className="card-title">Informasi produk</div></div>
-            <div className="card-body" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
-              <div style={{ height: 200, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 8px, var(--border) 8px, var(--border) 9px)", display: "grid", placeItems: "center", color: "var(--text-3)", fontFamily: "var(--ff-mono)", fontSize: 11 }}>foto produk</div>
-              <dl className="kv" style={{ alignSelf: "start" }}>
-                <dt>SKU</dt><dd className="mono">{p.sku}</dd>
-                <dt>Nama</dt><dd>{p.nama}</dd>
-                <dt>Varian</dt><dd>{p.variant}</dd>
-                <dt>Kategori</dt><dd>{p.kategori}</dd>
-                <dt>Supplier</dt><dd>{p.supplier}</dd>
-                <dt>Barcode</dt><dd className="mono">8 992761 {p.sku.slice(-4)}0</dd>
-                <dt>Dimensi</dt><dd>18 × 12 × 4 cm · 420 g</dd>
-                <dt>Dibuat</dt><dd className="muted">12 Jan 2025 · oleh Rangga A.</dd>
-              </dl>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Pergerakan stok — 14 hari</div>
-                <div className="card-sub">Masuk 340 · Keluar 216 · Neraca +124</div>
-              </div>
-            </div>
             <div className="card-body">
-              <BarChart data={[
-                { label: "13", in: 0, out: 8 }, { label: "14", in: 40, out: 12 },
-                { label: "15", in: 0, out: 22 }, { label: "16", in: 0, out: 14 },
-                { label: "17", in: 60, out: 18 }, { label: "18", in: 0, out: 10 },
-                { label: "19", in: 0, out: 16 }, { label: "20", in: 80, out: 24 },
-                { label: "21", in: 0, out: 12 }, { label: "22", in: 0, out: 20 },
-                { label: "23", in: 40, out: 18 }, { label: "24", in: 0, out: 14 },
-                { label: "25", in: 120, out: 22 }, { label: "26", in: 0, out: 6 },
-              ]} />
+              <dl className="kv">
+                <dt>SKU</dt><dd className="mono">{p.sku}</dd>
+                <dt>Nama</dt><dd>{p.nama_barang}</dd>
+                <dt>Kategori</dt><dd>{p.kategori ?? '—'}</dd>
+                <dt>Satuan</dt><dd>{p.satuan}</dd>
+                <dt>Harga</dt><dd className="mono">{fmtIDR(p.harga)}</dd>
+                <dt>Dibuat</dt><dd className="muted">{new Date(p.created_at).toLocaleDateString('id-ID')}</dd>
+              </dl>
             </div>
           </div>
 
           <div className="card">
             <div className="card-header"><div className="card-title">Riwayat transaksi</div></div>
             <table>
-              <thead><tr><th>Tanggal</th><th>Tipe</th><th>Referensi</th><th>Oleh</th><th className="num">Qty</th><th className="num">Saldo</th></tr></thead>
+              <thead>
+                <tr><th>Tanggal</th><th>Tipe</th><th>Oleh</th><th className="num">Qty</th><th>Keterangan</th></tr>
+              </thead>
               <tbody>
-                {[
-                  { t: "26 Apr 2026, 09:15", tipe: "Masuk",  ref: "IN-2604-0142",   by: "Siti F.",   qty: "+120", saldo: 142 },
-                  { t: "25 Apr 2026, 16:32", tipe: "Keluar", ref: "OUT-2504-2010",  by: "Budi S.",   qty: "-22",  saldo: 22 },
-                  { t: "24 Apr 2026, 11:04", tipe: "Opname", ref: "OPN-2404-09",    by: "Linda K.",  qty: "-1",   saldo: 44 },
-                  { t: "23 Apr 2026, 10:18", tipe: "Masuk",  ref: "IN-2304-0128",   by: "Rangga A.", qty: "+40",  saldo: 45 },
-                  { t: "22 Apr 2026, 14:44", tipe: "Keluar", ref: "OUT-2204-1998",  by: "Dewi W.",   qty: "-20",  saldo: 5 },
-                ].map((r, i) => (
+                {riwayat.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--text-3)", padding: 20 }}>Belum ada transaksi</td></tr>
+                ) : riwayat.map((t: any, i: number) => (
                   <tr key={i}>
-                    <td className="small">{r.t}</td>
-                    <td><Badge kind={r.tipe === "Masuk" ? "ok" : r.tipe === "Keluar" ? "info" : "neutral"}>{r.tipe.toUpperCase()}</Badge></td>
-                    <td className="mono">{r.ref}</td>
-                    <td>{r.by}</td>
-                    <td className="num" style={{ color: r.qty.startsWith("+") ? "var(--ok)" : "var(--danger)", fontWeight: 600 }}>{r.qty}</td>
-                    <td className="num">{r.saldo}</td>
+                    <td className="small">{new Date(t.tanggal).toLocaleDateString('id-ID')}</td>
+                    <td><Badge kind={t.jenis_transaksi === 'masuk' ? 'ok' : 'info'}>{t.jenis_transaksi.toUpperCase()}</Badge></td>
+                    <td>{t.pengguna.nama_lengkap}</td>
+                    <td className="num" style={{ color: t.jenis_transaksi === 'masuk' ? "var(--ok)" : "var(--danger)", fontWeight: 600 }}>
+                      {t.jenis_transaksi === 'masuk' ? '+' : '-'}{t.jumlah}
+                    </td>
+                    <td className="small muted">{t.keterangan ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -263,37 +250,17 @@ export function ProductDetail({ sku }: ProductDetailProps) {
             <div className="card-body">
               <div className="stat-label"><Icon name="package" className="ico ico-sm" /> Stok saat ini</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-                <div style={{ fontSize: 42, fontWeight: 600, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{p.stok}</div>
-                <div className="muted">unit</div>
+                <div style={{ fontSize: 42, fontWeight: 600, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{p.kuantitas_stok}</div>
+                <div className="muted">{p.satuan}</div>
                 <div style={{ marginLeft: "auto" }}><Badge kind={s.kind}>{s.label}</Badge></div>
               </div>
               <div className="progress" style={{ marginTop: 14, marginBottom: 8 }}>
-                <div className="bar" style={{ width: `${Math.min(100, (p.stok / (p.min * 3)) * 100)}%` }} />
+                <div className="bar" style={{ width: `${Math.min(100, (p.kuantitas_stok / (p.batas_minimum * 3 || 1)) * 100)}%` }} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                <span className="muted">Min: <span className="mono">{p.min}</span></span>
-                <span className="muted">Target: <span className="mono">{p.min * 3}</span></span>
+                <span className="muted">Min: <span className="mono">{p.batas_minimum}</span></span>
+                <span className="muted">Target: <span className="mono">{p.batas_minimum * 3}</span></span>
               </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header"><div className="card-title">Distribusi per lokasi</div></div>
-            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { loc: "A-02-14", wh: "WH-JKT-01", qty: 98 },
-                { loc: "A-02-15", wh: "WH-JKT-01", qty: 44 },
-                { loc: "B-01-03", wh: "WH-BDG-02", qty: 60 },
-                { loc: "C-04-07", wh: "WH-SBY-03", qty: 32 },
-              ].map(l => (
-                <div key={l.loc} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="mono small">{l.loc}</div>
-                    <div className="xsmall muted">{l.wh}</div>
-                  </div>
-                  <div className="mono" style={{ fontWeight: 600 }}>{l.qty}</div>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -301,15 +268,15 @@ export function ProductDetail({ sku }: ProductDetailProps) {
             <div className="card-header"><div className="card-title">Harga & margin</div></div>
             <div className="card-body">
               <dl className="kv">
-                <dt>Harga beli</dt><dd className="mono">{fmtIDR(Math.round(p.harga * 0.72))}</dd>
+                <dt>Harga beli (est.)</dt><dd className="mono">{fmtIDR(Math.round(p.harga * 0.72))}</dd>
                 <dt>Harga jual</dt><dd className="mono">{fmtIDR(p.harga)}</dd>
-                <dt>Margin</dt><dd><span className="mono">28%</span> <span className="muted xsmall">· sehat</span></dd>
-                <dt>Pajak</dt><dd>PPN 11%</dd>
+                <dt>Margin (est.)</dt><dd><span className="mono">28%</span> <span className="muted xsmall">· estimasi</span></dd>
+                <dt>Nilai stok</dt><dd className="mono">{fmtIDR(p.harga * p.kuantitas_stok)}</dd>
               </dl>
             </div>
           </div>
         </div>
       </div>
     </>
-  );
+  )
 }

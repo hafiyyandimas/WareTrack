@@ -1,7 +1,17 @@
 import { createRootRoute, Outlet, Link, HeadContent, Scripts } from '@tanstack/react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Icon } from '../components/Icon'
 import appStyles from '../styles.css?url'
 import wmsStyles from '../wms-styles.css?url'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 menit
+      retry: 1,
+    },
+  },
+})
 
 const NAV = [
   { to: '/',         icon: 'dashboard', label: 'Dashboard' },
@@ -38,46 +48,48 @@ function Shell() {
         <HeadContent />
       </head>
       <body>
-        <div className="app-shell">
-          <aside className="sidebar">
-            <div className="sidebar-brand">
-              <div className="sidebar-brand-mark">IG</div>
-              <div className="sidebar-brand-name">
-                <div className="sidebar-brand-title">Inventaris Gudang</div>
-                <div className="sidebar-brand-sub mono">WH-JKT-01</div>
-              </div>
-            </div>
-            <nav className="sidebar-nav">
-              {NAV.map(item => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="sidebar-link"
-                  activeProps={{ className: 'sidebar-link active' }}
-                  activeOptions={{ exact: item.to === '/' }}
-                >
-                  <Icon name={item.icon} className="ico ico-sm" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="sidebar-footer">
-              <div className="sidebar-user">
-                <div className="avatar">RA</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Rangga Adiputra</div>
-                  <div className="xsmall muted">Admin Gudang</div>
+        <QueryClientProvider client={queryClient}>
+          <div className="app-shell">
+            <aside className="sidebar">
+              <div className="sidebar-brand">
+                <div className="sidebar-brand-mark">IG</div>
+                <div className="sidebar-brand-name">
+                  <div className="sidebar-brand-title">Inventaris Gudang</div>
+                  <div className="sidebar-brand-sub mono">WH-JKT-01</div>
                 </div>
-                <Link to="/login" className="icon-btn" title="Keluar">
-                  <Icon name="logout" className="ico ico-sm" />
-                </Link>
               </div>
-            </div>
-          </aside>
-          <main className="main-content">
-            <Outlet />
-          </main>
-        </div>
+              <nav className="sidebar-nav">
+                {NAV.map(item => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="sidebar-link"
+                    activeProps={{ className: 'sidebar-link active' }}
+                    activeOptions={{ exact: item.to === '/' }}
+                  >
+                    <Icon name={item.icon} className="ico ico-sm" />
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+              <div className="sidebar-footer">
+                <div className="sidebar-user">
+                  <div className="avatar">RA</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Rangga Adiputra</div>
+                    <div className="xsmall muted">Admin Gudang</div>
+                  </div>
+                  <Link to="/login" className="icon-btn" title="Keluar">
+                    <Icon name="logout" className="ico ico-sm" />
+                  </Link>
+                </div>
+              </div>
+            </aside>
+            <main className="main-content">
+              <Outlet />
+            </main>
+          </div>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>

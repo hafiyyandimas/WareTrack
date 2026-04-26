@@ -1,4 +1,6 @@
-// ─── Inventory data ────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────────
+
+// ─── Interfaces ────────────────────────────────────────────────────────────
 
 export interface Product {
   sku: string;
@@ -61,6 +63,8 @@ export interface Role {
   izin: number;
 }
 
+// ─── Static / Demo Data ────────────────────────────────────────────────────
+
 export const PRODUCTS: Product[] = [
   { sku: "ELK-HP-0012", nama: "Smartphone Aura X3 128GB", kategori: "Elektronik", variant: "Midnight Black", stok: 142, min: 40, lokasi: "A-02-14", harga: 3750000, supplier: "PT Aura Tek Nusa", updated: "2d" },
   { sku: "ELK-HP-0013", nama: "Smartphone Aura X3 256GB", kategori: "Elektronik", variant: "Ocean Blue", stok: 28, min: 30, lokasi: "A-02-15", harga: 4250000, supplier: "PT Aura Tek Nusa", updated: "5j" },
@@ -73,8 +77,8 @@ export const PRODUCTS: Product[] = [
   { sku: "HMA-KT-1102", nama: "Set Alat Dapur Stainless", kategori: "Home & Kitchen", variant: "7 pcs", stok: 64, min: 20, lokasi: "D-01-02", harga: 320000, supplier: "UD Mitra Dapur", updated: "2d" },
   { sku: "ELK-KB-0341", nama: "Keyboard Mekanikal TKL", kategori: "Komputer", variant: "Red Switch", stok: 7, min: 15, lokasi: "B-01-09", harga: 820000, supplier: "PT Teknologi Maju", updated: "1j" },
   { sku: "ELK-MS-0512", nama: "Mouse Wireless Ergo", kategori: "Komputer", variant: "Grey", stok: 88, min: 30, lokasi: "B-01-10", harga: 245000, supplier: "PT Teknologi Maju", updated: "1d" },
-  { sku: "ELK-MN-0201", nama: "Monitor 27\" QHD 165Hz", kategori: "Komputer", variant: "Black", stok: 22, min: 10, lokasi: "B-02-01", harga: 3850000, supplier: "PT Teknologi Maju", updated: "3d" },
-];
+  { sku: "ELK-MN-0201", nama: 'Monitor 27" QHD 165Hz', kategori: "Komputer", variant: "Black", stok: 22, min: 10, lokasi: "B-02-01", harga: 3850000, supplier: "PT Teknologi Maju", updated: "3d" },
+]
 
 export const INBOUND: InboundDoc[] = [
   { ref: "IN-2604-0142", po: "PO-2604-088", supplier: "PT Aura Tek Nusa", items: 4, qty: 240, tanggal: "26 Apr 2026", status: "diterima", penerima: "Rangga A." },
@@ -85,7 +89,7 @@ export const INBOUND: InboundDoc[] = [
   { ref: "IN-2504-0137", po: "PO-2504-076", supplier: "PT Aura Tek Nusa", items: 5, qty: 310, tanggal: "25 Apr 2026", status: "ditolak", penerima: "Rangga A." },
   { ref: "IN-2404-0136", po: "PO-2404-073", supplier: "Konveksi Satria", items: 4, qty: 420, tanggal: "24 Apr 2026", status: "diterima", penerima: "Siti F." },
   { ref: "IN-2404-0135", po: "PO-2404-072", supplier: "CV Daya Prima", items: 2, qty: 180, tanggal: "24 Apr 2026", status: "diterima", penerima: "Dewi W." },
-];
+]
 
 export const OUTBOUND: OutboundDoc[] = [
   { ref: "OUT-2604-2014", tujuan: "Toko Sentral Depok", items: 8, qty: 145, tanggal: "26 Apr 2026", status: "dikirim", picker: "Budi S." },
@@ -95,7 +99,7 @@ export const OUTBOUND: OutboundDoc[] = [
   { ref: "OUT-2504-2010", tujuan: "Marketplace - Tokopedia", items: 18, qty: 304, tanggal: "25 Apr 2026", status: "dikirim", picker: "Budi S." },
   { ref: "OUT-2504-2009", tujuan: "Toko Sentral Depok", items: 4, qty: 67, tanggal: "25 Apr 2026", status: "dibatalkan", picker: "—" },
   { ref: "OUT-2504-2008", tujuan: "Event Pop-up Kemang", items: 22, qty: 380, tanggal: "25 Apr 2026", status: "dikirim", picker: "Dewi W." },
-];
+]
 
 export const ALERTS: AlertItem[] = [
   { sku: "ELK-AC-0203", nama: "Charger USB-C 65W", stok: 0, min: 50, status: "habis", lastOrder: "14 hari lalu", kategori: "Aksesoris" },
@@ -106,7 +110,7 @@ export const ALERTS: AlertItem[] = [
   { sku: "HMA-SL-0201", nama: "Selimut Fleece King Size", stok: 4, min: 20, status: "kritis", lastOrder: "30 hari lalu", kategori: "Home & Kitchen" },
   { sku: "ELK-CM-0911", nama: "Webcam 1080p Auto Focus", stok: 11, min: 25, status: "rendah", lastOrder: "6 hari lalu", kategori: "Komputer" },
   { sku: "ELK-SP-0142", nama: "Speaker Bluetooth Outdoor", stok: 2, min: 15, status: "kritis", lastOrder: "45 hari lalu", kategori: "Audio" },
-];
+]
 
 export const USERS: User[] = [
   { nama: "Rangga Adiputra", email: "rangga.a@gudang.id", role: "Admin Gudang", lokasi: "WH-JKT-01", status: "aktif", lastLogin: "Hari ini, 08:14", inisial: "RA" },
@@ -117,7 +121,7 @@ export const USERS: User[] = [
   { nama: "Linda Kusuma", email: "linda.k@gudang.id", role: "Auditor", lokasi: "HQ", status: "aktif", lastLogin: "2 hari lalu", inisial: "LK" },
   { nama: "Hendra Wijaya", email: "hendra.w@gudang.id", role: "Staff Outbound", lokasi: "WH-SBY-03", status: "non-aktif", lastLogin: "30 hari lalu", inisial: "HW" },
   { nama: "Putri Maharani", email: "putri.m@gudang.id", role: "Manajer", lokasi: "WH-SBY-03", status: "aktif", lastLogin: "Hari ini, 08:45", inisial: "PM" },
-];
+]
 
 export const ROLES: Role[] = [
   { nama: "Super Admin", user: 1, scope: "Semua gudang", izin: 24 },
@@ -127,18 +131,21 @@ export const ROLES: Role[] = [
   { nama: "Staff Outbound", user: 6, scope: "Per gudang", izin: 7 },
   { nama: "Auditor", user: 2, scope: "Read-only", izin: 5 },
   { nama: "Supplier", user: 14, scope: "Portal supplier", izin: 4 },
-];
+]
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 
-export const fmtIDR = (n: number) => "Rp " + n.toLocaleString("id-ID");
-export const fmtNum = (n: number) => n.toLocaleString("id-ID");
+export const fmtIDR = (n: number | bigint | null | undefined) => {
+  if (n === null || n === undefined) return 'Rp 0'
+  return "Rp " + Number(n).toLocaleString("id-ID")
+}
+export const fmtNum = (n: number) => n.toLocaleString("id-ID")
 
 // ─── Stock status helper ────────────────────────────────────────────────────
 
 export function statusForStock(stok: number, min: number): { kind: string; label: string } {
-  if (stok === 0) return { kind: "danger", label: "HABIS" };
-  if (stok < min) return { kind: "warn", label: "RENDAH" };
-  if (stok < min * 1.2) return { kind: "warn", label: "HAMPIR MIN" };
-  return { kind: "ok", label: "NORMAL" };
+  if (stok === 0) return { kind: "danger", label: "HABIS" }
+  if (stok < min) return { kind: "warn", label: "RENDAH" }
+  if (stok < min * 1.2) return { kind: "warn", label: "HAMPIR MIN" }
+  return { kind: "ok", label: "NORMAL" }
 }

@@ -1,32 +1,41 @@
-import { useNavigate, Link } from '@tanstack/react-router';
-import { Icon } from '../components/Icon';
-import { Badge, PageHeader, BarChart } from '../components/ui';
-import { ALERTS, fmtNum } from '../lib/data';
+import { useNavigate, Link } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { Icon } from '../components/Icon'
+import { Badge, PageHeader, BarChart } from '../components/ui'
+import { fmtNum } from '../lib/data'
+import { getDashboardStats, getBarChart, getLowStock } from '../lib/queries'
+
+function fmtIDR(n: number) {
+  if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(2)} miliar`
+  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(2)} juta`
+  return `Rp ${n.toLocaleString('id-ID')}`
+}
 
 export function Dashboard() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => getDashboardStats(),
+  })
+
+  const { data: barData } = useQuery({
+    queryKey: ['bar-chart'],
+    queryFn: () => getBarChart(),
+  })
+
+  const { data: lowStock } = useQuery({
+    queryKey: ['low-stock'],
+    queryFn: () => getLowStock(),
+  })
 
   function onNav(to: string) {
     const routeMap: Record<string, string> = {
-      inbound:  '/inbound',
-      outbound: '/outbound',
-      opname:   '/opname',
-      products: '/products',
-      reports:  '/reports',
-      alerts:   '/alerts',
-    };
-    navigate({ to: routeMap[to] ?? '/' });
+      inbound: '/inbound', outbound: '/outbound', opname: '/opname',
+      products: '/products', reports: '/reports', alerts: '/alerts',
+    }
+    navigate({ to: routeMap[to] ?? '/' })
   }
-
-  const barData = [
-    { label: "20", in: 240, out: 180 },
-    { label: "21", in: 310, out: 220 },
-    { label: "22", in: 180, out: 260 },
-    { label: "23", in: 420, out: 340 },
-    { label: "24", in: 380, out: 410 },
-    { label: "25", in: 290, out: 360 },
-    { label: "26", in: 510, out: 430 },
-  ];
 
   return (
     <>
@@ -51,23 +60,25 @@ export function Dashboard() {
       <div className="stat-grid">
         <div className="stat">
           <div className="stat-label"><Icon name="package" className="ico ico-sm" /> Total SKU aktif</div>
-          <div className="stat-value">12.418 <span className="stat-unit">item</span></div>
-          <div className="stat-delta up"><Icon name="arrowUp" className="ico ico-sm" /> 42 baru <span className="muted">· 7 hari</span></div>
+          <div className="stat-value">{fmtNum(stats?.totalSKU ?? 0)} <span className="stat-unit">item</span></div>
+          <div className="stat-delta up"><Icon name="arrowUp" className="ico ico-sm" /> dari database</div>
         </div>
         <div className="stat">
           <div className="stat-label"><Icon name="tag" className="ico ico-sm" /> Nilai inventaris</div>
-          <div className="stat-value">Rp 8,42 <span className="stat-unit">miliar</span></div>
-          <div className="stat-delta up"><Icon name="arrowUp" className="ico ico-sm" /> 3.8% <span className="muted">vs pekan lalu</span></div>
+          <div className="stat-value">{fmtIDR(stats?.nilaiInventaris ?? 0)}</div>
+          <div className="stat-delta up"><Icon name="arrowUp" className="ico ico-sm" /> total stok × harga</div>
         </div>
         <div className="stat">
           <div className="stat-label"><Icon name="alert" className="ico ico-sm" /> Stok di bawah minimum</div>
-          <div className="stat-value" style={{ color: "var(--warn)" }}>28 <span className="stat-unit">SKU</span></div>
-          <div className="stat-delta down"><Icon name="arrowUp" className="ico ico-sm" /> 6 <span className="muted">vs kemarin</span></div>
+          <div className="stat-value" style={{ color: "var(--warn)" }}>
+            {stats?.lowStockCount ?? 0} <span className="stat-unit">SKU</span>
+          </div>
+          <div className="stat-delta down"><Icon name="arrowUp" className="ico ico-sm" /> perlu restock</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><Icon name="activity" className="ico ico-sm" /> Akurasi opname</div>
-          <div className="stat-value">99,94%</div>
-          <div className="stat-delta up"><Icon name="check" className="ico ico-sm" /> <span className="muted">Audit 24 Apr</span></div>
+          <div className="stat-label"><Icon name="activity" className="ico ico-sm" /> Transaksi hari ini</div>
+          <div className="stat-value">{stats?.transaksiHariIni?.length ?? 0}</div>
+          <div className="stat-delta up"><Icon name="check" className="ico ico-sm" /> <span className="muted">realtime</span></div>
         </div>
       </div>
 
@@ -88,7 +99,7 @@ export function Dashboard() {
             </div>
           </div>
           <div className="card-body">
-            <BarChart data={barData} />
+            <BarChart data={barData ?? []} />
           </div>
         </div>
 
@@ -125,7 +136,7 @@ export function Dashboard() {
           <div className="card-header">
             <div>
               <div className="card-title">Stok perlu perhatian</div>
-              <div className="card-sub">8 SKU di bawah atau mendekati minimum</div>
+              <div className="card-sub">{lowStock?.length ?? 0} SKU di bawah atau mendekati minimum</div>
             </div>
             <Link to="/alerts" className="btn btn-ghost btn-sm">
               Lihat semua <Icon name="arrowRight" className="ico ico-sm" />
@@ -141,27 +152,36 @@ export function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {ALERTS.slice(0, 5).map((a) => {
-                const pct = Math.min(100, (a.stok / a.min) * 100);
-                const kind = a.status === "habis" || a.status === "kritis" ? "danger" : "warn";
-                return (
+             {(lowStock ?? []).slice(0, 5).map((a: {
+              sku: string
+              nama_barang: string
+              kuantitas_stok: number
+              batas_minimum: number
+              harga: number
+}) => {
+  const pct = a.batas_minimum > 0 ? Math.min(100, (a.kuantitas_stok / a.batas_minimum) * 100) : 0
+  const kind = a.kuantitas_stok === 0 ? "danger" : "warn"
+  const label = a.kuantitas_stok === 0 ? "HABIS" : "RENDAH"
+  return (
                   <tr key={a.sku}>
                     <td>
-                      <div style={{ fontSize: 12.5, fontWeight: 500 }}>{a.nama}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 500 }}>{a.nama_barang}</div>
                       <div className="mono xsmall muted">{a.sku}</div>
                     </td>
-                    <td className="num" style={{ fontWeight: 600, color: a.stok === 0 ? "var(--danger)" : undefined }}>{a.stok}</td>
-                    <td className="num muted">{a.min}</td>
+                    <td className="num" style={{ fontWeight: 600, color: a.kuantitas_stok === 0 ? "var(--danger)" : undefined }}>
+                      {a.kuantitas_stok}
+                    </td>
+                    <td className="num muted">{a.batas_minimum}</td>
                     <td>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 100 }}>
-                        <Badge kind={kind}>{a.status.toUpperCase()}</Badge>
+                        <Badge kind={kind}>{label}</Badge>
                         <div className={`progress ${kind}`} style={{ height: 3 }}>
                           <div className="bar" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     </td>
                   </tr>
-                );
+                )
               })}
             </tbody>
           </table>
@@ -176,25 +196,31 @@ export function Dashboard() {
           </div>
           <div className="card-body">
             <div className="timeline">
-              {[
-                { active: true,  time: "09:42", who: "Budi S.",    what: "Mengeluarkan 48 unit Powerbank 10.000mAh",                        ref: "OUT-2604-2014" },
-                { active: true,  time: "09:15", who: "Siti F.",    what: "Menerima 120 unit Smartphone Aura X3 dari PT Aura Tek Nusa",       ref: "IN-2604-0142" },
-                { active: false, time: "08:52", who: "Rangga A.",  what: "Menyetujui PO-2604-090 senilai Rp 124jt",                         ref: "PO-2604-090" },
-                { active: false, time: "08:30", who: "Linda K.",   what: "Menyelesaikan opname rak A-02",                                   ref: "OPN-2604-11" },
-                { active: false, time: "08:14", who: "Dewi W.",    what: "Memperbarui harga 12 SKU kategori Komputer",                      ref: "—" },
-              ].map((t, i) => (
-                <div key={i} className={"timeline-item" + (t.active ? " active" : "")}>
+              {(stats?.transaksiHariIni ?? []).map((t: any, i: number) => (
+                <div key={i} className={"timeline-item" + (i === 0 ? " active" : "")}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ fontSize: 12.5 }}><strong>{t.who}</strong> — {t.what}</div>
-                    <div className="mono xsmall muted" style={{ whiteSpace: "nowrap" }}>{t.time}</div>
+                    <div style={{ fontSize: 12.5 }}>
+                      <strong>{t.pengguna.nama_lengkap}</strong> —{' '}
+                      {t.jenis_transaksi === 'masuk' ? 'Menerima' : 'Mengeluarkan'} {t.jumlah} unit {t.barang.nama_barang}
+                    </div>
+                    <div className="mono xsmall muted" style={{ whiteSpace: "nowrap" }}>
+                      {new Date(t.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
-                  <div className="mono xsmall muted" style={{ marginTop: 2 }}>{t.ref}</div>
+                  <div className="mono xsmall muted" style={{ marginTop: 2 }}>
+                    {t.keterangan ?? '—'}
+                  </div>
                 </div>
               ))}
+              {(stats?.transaksiHariIni ?? []).length === 0 && (
+                <div className="muted" style={{ fontSize: 13, padding: '8px 0' }}>
+                  Belum ada transaksi hari ini.
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </>
-  );
+  )
 }
