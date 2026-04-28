@@ -2,6 +2,18 @@ Welcome to your new TanStack Start app!
 
 # Getting Started
 
+Latest Changes (for Databases)
+
+# Setup (Database)
+Before running this application, do:
+Create .env fles based on .env.example file,
+then run:
+```bash
+pnpm db:generate
+pnpm db:push
+pnpm db:studio  # Verify the connection
+```
+
 To run this application:
 
 ```bash
