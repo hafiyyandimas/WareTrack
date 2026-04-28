@@ -1,40 +1,25 @@
-Welcome to your new TanStack Start app! 
-
 # Getting Started
 
 Latest Changes (for Databases)
 
+# Install dependencies
+
+```bash
+npm install ## Installing dependencies
+npm run build ## Building for production
+```
+
 # Setup (Database)
-Before running this application, do:
-Create .env fles based on .env.example file,
-then run:
+Create .env fles based on .env.example file, then run:
 ```bash
 pnpm db:generate
 pnpm db:push
 pnpm db:studio  # Verify the connection
 ```
 
-To run this application:
-
+## Running The App
 ```bash
-npm install
 npm run dev
-```
-
-# Building For Production
-
-To build this application for production:
-
-```bash
-npm run build
-```
-
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
-npm run test
 ```
 
 ## Styling
