@@ -1,10 +1,24 @@
-Welcome to your new TanStack Start app! 
 # Getting Started
 
-To run this application:
+Latest Changes (for Databases)
+
+# Install dependencies
 
 ```bash
-npm install
+npm install ## Installing dependencies
+npm run build ## Building for production
+```
+
+# Setup (Database)
+Create .env fles based on .env.example file, then run:
+```bash
+pnpm db:generate
+pnpm db:push
+pnpm db:studio  # Verify the connection
+```
+
+## Running The App
+```bash
 npm run dev
 ```
 
