@@ -1,6 +1,6 @@
 # Getting Started
 
-Latest Changes (for Databases)
+Latest Changes: Login Pages
 
 # Install dependencies
 
@@ -42,6 +42,49 @@ npm run test
 
 User need to manually redirect to localhost:xxx/login
 for first time login/signup, then to render the sidepanel user also need to refresh the pages.
+
+# Database Tables Format
+Queries used (postgresql):
+
+create table public.transaksi (
+  jumlah integer not null,
+  id_pengguna bigint not null,
+  id_barang bigint not null,
+  id_transaksi bigserial not null,
+  keterangan text null,
+  jenis_transaksi character varying not null,
+  created_at timestamp without time zone not null,
+  tanggal timestamp without time zone not null,
+  constraint transaksi_pkey primary key (id_transaksi),
+  constraint fk_transaksi_barang foreign KEY (id_barang) references barang (id_barang),
+  constraint fk_transaksi_pengguna foreign KEY (id_pengguna) references pengguna (id_pengguna)
+) TABLESPACE pg_default;
+
+create table public.barang (
+  harga bigint not null,
+  batas_minimum integer not null,
+  kuantitas_stok integer not null,
+  id_barang bigserial not null,
+  satuan character varying not null,
+  kategori character varying null,
+  sku character varying not null,
+  nama_barang character varying not null,
+  updated_at timestamp without time zone not null,
+  created_at timestamp without time zone not null,
+  constraint barang_pkey primary key (id_barang),
+  constraint barang_sku_key unique (sku)
+) TABLESPACE pg_default;
+
+create table public.pengguna (
+  id_pengguna bigserial not null,
+  role character varying not null,
+  password_hash character varying not null,
+  email character varying not null,
+  nama_lengkap character varying not null,
+  updated_at timestamp without time zone not null,
+  created_at timestamp without time zone not null,
+  constraint pengguna_pkey primary key (id_pengguna)
+) TABLESPACE pg_default;
 
 ## Styling
 
