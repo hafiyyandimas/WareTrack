@@ -3,14 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Icon } from '../components/Icon'
 import appStyles from '../styles.css?url'
 import wmsStyles from '../wms-styles.css?url'
+import { useEffect, useState } from 'react'
+import { useRouter } from '@tanstack/react-router'
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60, // 1 menit
-      retry: 1,
-    },
-  },
+  defaultOptions: { queries: { staleTime: 1000 * 60, retry: 1 } },
 })
 
 const NAV = [
@@ -24,19 +21,77 @@ const NAV = [
   { to: '/users',    icon: 'users',     label: 'User & Role' },
 ]
 
-function NotFound() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16 }}>
-      <div style={{ fontSize: 48, fontWeight: 700, fontFamily: 'var(--ff-mono)', color: 'var(--border)' }}>404</div>
-      <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text)' }}>Halaman tidak ditemukan</div>
-      <Link to="/" className="btn btn-primary btn-sm">
-        <Icon name="home" className="ico ico-sm" /> Kembali ke Dashboard
-      </Link>
-    </div>
-  )
-}
-
 function Shell() {
+  const router   = useRouter()
+  const pathname = router.state.location.pathname
+
+  // Selalu mulai dengan null — baca sessionStorage di client via useEffect
+  const [user, setUser] = useState<{ nama_lengkap: string; role: string } | null>(null)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('auth_user')
+    if (stored) {
+      setUser(JSON.parse(stored))
+    }
+    setChecked(true)
+  }, [pathname])
+
+  // Belum selesai cek — render shell kosong (tidak blank, hanya tunggu)
+  if (!checked) {
+    return (
+      <html lang="id">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Inventaris Gudang</title>
+          <link rel="stylesheet" href={appStyles} />
+          <link rel="stylesheet" href={wmsStyles} />
+          <HeadContent />
+        </head>
+        <body>
+          <Scripts />
+        </body>
+      </html>
+    )
+  }
+
+  // Belum login, bukan di /login → redirect
+  if (!user && pathname !== '/login') {
+    window.location.href = '/login'
+    return null
+  }
+
+  // Halaman login → tanpa sidebar
+  if (pathname === '/login') {
+    return (
+      <html lang="id">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Inventaris Gudang</title>
+          <link rel="stylesheet" href={appStyles} />
+          <link rel="stylesheet" href={wmsStyles} />
+          <HeadContent />
+        </head>
+        <body>
+          <QueryClientProvider client={queryClient}>
+            <Outlet />
+          </QueryClientProvider>
+          <Scripts />
+        </body>
+      </html>
+    )
+  }
+
+  const initials = user!.nama_lengkap
+    ?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() ?? 'U'
+
+  function handleLogout() {
+    sessionStorage.removeItem('auth_user')
+    window.location.href = '/login'
+  }
+
   return (
     <html lang="id">
       <head>
@@ -74,14 +129,16 @@ function Shell() {
               </nav>
               <div className="sidebar-footer">
                 <div className="sidebar-user">
-                  <div className="avatar">RA</div>
+                  <div className="avatar">{initials}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Rangga Adiputra</div>
-                    <div className="xsmall muted">Admin Gudang</div>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user!.nama_lengkap}
+                    </div>
+                    <div className="xsmall muted">{user!.role}</div>
                   </div>
-                  <Link to="/login" className="icon-btn" title="Keluar">
+                  <button className="icon-btn" title="Keluar" onClick={handleLogout}>
                     <Icon name="logout" className="ico ico-sm" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </aside>
@@ -98,5 +155,11 @@ function Shell() {
 
 export const Route = createRootRoute({
   component: Shell,
-  notFoundComponent: NotFound,
+  notFoundComponent: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16 }}>
+      <div style={{ fontSize: 48, fontWeight: 700, fontFamily: 'var(--ff-mono)', color: 'var(--border)' }}>404</div>
+      <div style={{ fontSize: 16, fontWeight: 500 }}>Halaman tidak ditemukan</div>
+      <Link to="/" className="btn btn-primary btn-sm">Kembali ke Dashboard</Link>
+    </div>
+  ),
 })

@@ -1,5 +1,6 @@
 import { prisma } from '../db'
 import { createServerFn } from '@tanstack/react-start'
+import bcrypt from 'bcryptjs'
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -265,9 +266,63 @@ export const getPengguna = createServerFn({ method: 'GET' }).handler(async () =>
   return await prisma.pengguna.findMany({ orderBy: { id_pengguna: 'asc' } })
 })
 
-export const loginUser = createServerFn({ method: 'GET' })
-  .handler(async ({ data }: { data: { email: string; password: string } }) => {
-    return await prisma.pengguna.findFirst({
-      where: { email: data.email, password_hash: data.password }
+export const loginUser = createServerFn({ method: 'POST' })
+  // @ts-ignore
+  .handler(async ({ data }: { data: { username: string; password: string } }) => {
+    const user = await prisma.pengguna.findFirst({
+      where: { email: data.username }
     })
+    if (!user) return { ok: false, error: 'Username tidak ditemukan.' }
+
+    const match = await bcrypt.compare(data.password, user.password_hash)
+    if (!match) return { ok: false, error: 'Password salah.' }
+
+    return {
+      ok: true,
+      user: {
+        id_pengguna:  user.id_pengguna,
+        nama_lengkap: user.nama_lengkap,
+        email:        user.email,
+        role:         user.role,
+      }
+    }
+  })
+
+  // ─── Auth: Register ────────────────────────────────────────────────────────
+
+
+export const registerUser = createServerFn({ method: 'POST' })
+  // @ts-ignore
+  .handler(async ({ data }: {
+    data: { username: string; password: string }
+  }) => {
+    // Cek apakah username sudah dipakai (username disimpan di field email)
+    const existing = await prisma.pengguna.findFirst({
+      where: { email: data.username }
+    })
+    if (existing) {
+      return { ok: false, error: 'Username sudah digunakan.' }
+    }
+
+    const hash = await bcrypt.hash(data.password, 10)
+
+    const user = await prisma.pengguna.create({
+      data: {
+        nama_lengkap: data.username,
+        email:        data.username,   // username = email per spek
+        password_hash: hash,
+        role:         'Staff Inbound', // role default untuk pendaftar baru
+        updated_at:   new Date(),
+      }
+    })
+
+    return {
+      ok: true,
+      user: {
+        id_pengguna:  user.id_pengguna,
+        nama_lengkap: user.nama_lengkap,
+        email:        user.email,
+        role:         user.role,
+      }
+    }
   })

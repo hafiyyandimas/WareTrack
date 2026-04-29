@@ -1,5 +1,4 @@
 Welcome to your new TanStack Start app! 
-
 # Getting Started
 
 To run this application:
@@ -24,6 +23,11 @@ This project uses [Vitest](https://vitest.dev/) for testing. You can run the tes
 ```bash
 npm run test
 ```
+
+# Latest Issues (29 April 2026)
+
+User need to manually redirect to localhost:xxx/login
+for first time login/signup, then to render the sidepanel user also need to refresh the pages.
 
 ## Styling
 
