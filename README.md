@@ -46,6 +46,7 @@ for first time login/signup, then to render the sidepanel user also need to refr
 # Database Tables Format
 Queries used (postgresql):
 
+```bash
 create table public.transaksi (
   jumlah integer not null,
   id_pengguna bigint not null,
@@ -59,7 +60,11 @@ create table public.transaksi (
   constraint fk_transaksi_barang foreign KEY (id_barang) references barang (id_barang),
   constraint fk_transaksi_pengguna foreign KEY (id_pengguna) references pengguna (id_pengguna)
 ) TABLESPACE pg_default;
+```
 
+
+
+```bash
 create table public.barang (
   harga bigint not null,
   batas_minimum integer not null,
@@ -74,7 +79,9 @@ create table public.barang (
   constraint barang_pkey primary key (id_barang),
   constraint barang_sku_key unique (sku)
 ) TABLESPACE pg_default;
+```
 
+```bash
 create table public.pengguna (
   id_pengguna bigserial not null,
   role character varying not null,
@@ -85,6 +92,7 @@ create table public.pengguna (
   created_at timestamp without time zone not null,
   constraint pengguna_pkey primary key (id_pengguna)
 ) TABLESPACE pg_default;
+```
 
 ## Styling
 
